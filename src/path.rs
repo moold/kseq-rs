@@ -1,9 +1,24 @@
 use std::io::{Result, Read, BufRead, BufReader, Error, ErrorKind, Cursor};
 use flate2::read::MultiGzDecoder;
+use std::path::Path;
 
-use crate::record::{Reader, Paths};
+use crate::record::{Reader, Readers, Fastx};
 
-pub fn parse_path(path: Option<String>) -> Result<Reader>{
+pub enum Paths {
+    Reader(Reader),
+    Readers(Readers)
+}
+
+impl Paths {
+    pub fn iter_record(&mut self) -> Option<Fastx> {
+        match self {
+            Paths::Reader(t) => t.iter_record_check(),
+            Paths::Readers(t) => t.iter_record(),
+        }
+    }
+}
+
+pub fn parse_path(path: Option<String>) -> Result<Paths>{
     let mut reader: Box<dyn BufRead> = match path.as_ref().map(String::as_str) {
         None | Some("-") => {
             Box::new(BufReader::with_capacity(65536, std::io::stdin()))
@@ -12,40 +27,37 @@ pub fn parse_path(path: Option<String>) -> Result<Reader>{
             Box::new(BufReader::with_capacity(65536, std::fs::File::open(path)?))
         }
     };
-    let mut magic_bytes = [0u8; 4];
-    reader.read_exact(&mut magic_bytes)?;
-    reader = Box::new(Cursor::new(magic_bytes.to_vec()).chain(reader));
-   if &magic_bytes[..2] == b"\x1f\x8b" {
+    let mut format_bytes = [0u8; 4];
+    reader.read_exact(&mut format_bytes)?;
+    reader = Box::new(Cursor::new(format_bytes.to_vec()).chain(reader));
+    if &format_bytes[..2] == b"\x1f\x8b" {
         reader = Box::new(BufReader::with_capacity(65536, MultiGzDecoder::new(reader)));
-        // magic_bytes.iter_mut().for_each(|m| *m = 0);
-        reader.read_exact(&mut magic_bytes)?;
-        reader = Box::new(Cursor::new(magic_bytes.to_vec()).chain(reader));
+        format_bytes.iter_mut().for_each(|m| *m = 0);
+        reader.read_exact(&mut format_bytes)?;
+        reader = Box::new(Cursor::new(format_bytes.to_vec()).chain(reader));
     }
 
-    match magic_bytes[0] {
-        b'@' => Ok(Reader::new(reader, true)),
-        b'>' => Ok(Reader::new(reader, false)),
-        _ => Err(Error::new(ErrorKind::InvalidData, "Not a gzip or plain fastq/fasta file"))
-    }
-}
-
-pub fn parse_paths(path: Option<String>) -> Result<Paths>{
-    let reader: Box<dyn BufRead> = match path.as_ref().map(String::as_str) {
-        None | Some("-") => {
-            Box::new(BufReader::with_capacity(65536, std::io::stdin()))
-        },
-        Some(path) => {
-            Box::new(BufReader::with_capacity(65536, std::fs::File::open(path)?))
+    match format_bytes[0] {
+        b'@' | b'>' => {
+            Ok(Paths::Reader(Reader::new(reader)))
         }
-    };
-    
-    let mut result = Paths::new();
-    for line in reader.lines() {
-        let path = line.unwrap();
-        if path.trim().starts_with('#') || path.trim().is_empty(){
-            continue;
+        _ => {
+            let mut paths = Readers::new();
+            for _line in reader.lines().map(|l| l.unwrap()){
+                let line = _line.trim();
+                if line.starts_with('#') || line.is_empty(){
+                    continue;
+                }
+                if Path::new(line).exists(){
+                    match parse_path(Some(line.to_string())).unwrap() {
+                        Paths::Reader(reader) => paths.readers.push(reader),
+                        _ => unreachable!()
+                    }
+                }else{
+                    return Err(Error::new(ErrorKind::InvalidData, "Not a valid fastq/fasta/fofn file"))
+                }
+            }
+            Ok(Paths::Readers(paths))
         }
-        result.paths.push(parse_path(Some(path)));
     }
-    Ok(result)
 }

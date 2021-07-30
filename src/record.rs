@@ -1,191 +1,94 @@
-use std::{io::{BufRead, Result}, str::from_utf8_unchecked};
+use std::{io::BufRead, str::from_utf8_unchecked};
 
-pub trait Seq {
-
-    fn head(&self) -> &str;
-
-    fn seq(&self) -> &str;
-
-    fn sep(&self) -> &str;
-
-    fn qual(&self) -> &str;
-
-    fn len(&self) ->usize;
-
-    fn validate_format(&self)-> bool;
-
-    fn validate_dna(&self) -> bool {
-        self.seq().bytes().all(|x| x == b'A' || x == b'C' || x == b'T' || x == b'G')
-    }
-
-    fn validate_dnan(&self) -> bool {
-        self.seq().bytes().all(|x| x == b'A' || x == b'C' || x == b'T' || x == b'G' || x == b'N')
-    }
-}
-
-pub struct Fastq<'a> {
+pub struct Fastx<'a> {
     _head: usize,
+    _des: usize,
     _seq: usize,
     _sep: usize,
     _qual: usize,
     _data: &'a [u8]
 }
 
-impl Seq for Fastq<'_> {
+impl Fastx<'_> {
     #[inline]
-    fn head(&self) -> &str {
+    pub fn head(&self) -> &str {
         unsafe{ from_utf8_unchecked(&self._data[1 .. self._head - 1]) }
     }
 
     #[inline]
-    fn seq(&self) -> &str {
-        unsafe{ from_utf8_unchecked(&self._data[self._head .. self._seq - 1]) }
+    pub fn seq(&self) -> &str {
+        unsafe{ from_utf8_unchecked(&self._data[self._des .. self._seq - 1]) }
     }
 
     #[inline]
-    fn sep(&self) -> &str {
-        unsafe{ from_utf8_unchecked(&self._data[self._seq .. self._sep - 1]) }
+    pub fn des(&self) -> &str {
+        if self._des != self._head {
+            unsafe{ from_utf8_unchecked(&self._data[self._head .. self._des - 1]) }
+        }else {
+            ""
+        }
     }
 
     #[inline]
-    fn qual(&self) -> &str {
-        unsafe{ from_utf8_unchecked(&self._data[self._sep .. self._qual - 1]) }
+    pub fn sep(&self) -> &str {
+        if self._seq != self._sep{
+            unsafe{ from_utf8_unchecked(&self._data[self._seq .. self._sep - 1]) }
+        }else{
+            ""
+        }
     }
 
-    fn len(&self) -> usize{
-        self._seq - self._head - 1
+    #[inline]
+    pub fn qual(&self) -> &str {
+        if self._sep != self._qual {
+            unsafe{ from_utf8_unchecked(&self._data[self._sep .. self._qual - 1]) }
+        }else{
+            ""
+        }
     }
     
     #[inline]
-    fn validate_format(&self)-> bool {
-        if self._seq - self._head != self._qual - self._sep || self._data[0] != b'@' {
+    pub fn len(&self) -> usize {
+        self._seq - self._des - 1
+    }
+    
+    fn validate_fastq(&self)-> bool {
+        if self._seq - self._des != self._qual - self._sep || self._data[0] != b'@' {
             false
         }else {true}
     }
-}
 
-pub struct Fasta<'a> {
-    _head: usize,
-    _seq: usize,
-    _data: &'a [u8]
-}
-
-impl Seq for Fasta<'_> {
-    #[inline]
-    fn head(&self) -> &str {
-        unsafe{ from_utf8_unchecked(&self._data[1 .. self._head - 1]) }
-    }
-
-    #[inline]
-    fn seq(&self) -> &str {
-        unsafe{ from_utf8_unchecked(&self._data[self._head .. self._seq - 1]) }
-    }
-
-
-    #[inline]
-    fn sep(&self) -> &str {
-        "\0"
-    }
-
-    #[inline]
-    fn qual(&self) -> &str {
-        "\0"
-    }
-
-    fn len(&self) -> usize{
-        self._seq - self._head - 1
-    }
-    
-    #[inline]
-    fn validate_format(&self)-> bool {
+    fn validate_fasta(&self)-> bool {
         if self._data[0] != b'>' {
             false
         }else {true}
     }
-}
 
-pub enum Record<'a> {
-    Fastq(Fastq<'a>),
-    Fasta(Fasta<'a>)
-}
-
-impl Seq for Record<'_> {
-    #[inline]
-    fn head(&self) -> &str {
-        match self {
-            Record::Fasta(t) => t.head(),
-            Record::Fastq(t) => t.head(),
-        }
+    pub fn validate_dna(&self) -> bool {
+        self.seq().bytes().all(|x| x == b'A' || x == b'C' || x == b'T' || x == b'G')
     }
 
-    #[inline]
-    fn seq(&self) -> &str {
-        match self {
-            Record::Fasta(t) => t.seq(),
-            Record::Fastq(t) => t.seq(),
-        }
-    }
-
-
-    #[inline]
-    fn sep(&self) -> &str {
-        match self {
-            Record::Fasta(t) => t.sep(),
-            Record::Fastq(t) => t.sep(),
-        }
-    }
-
-    #[inline]
-    fn qual(&self) -> &str {
-        match self {
-            Record::Fasta(t) => t.qual(),
-            Record::Fastq(t) => t.qual(),
-        }
-    }
-
-    fn len(&self) -> usize{
-        match self {
-            Record::Fasta(t) => t.len(),
-            Record::Fastq(t) => t.len(),
-        }
-    }
-    
-    #[inline]
-    fn validate_format(&self)-> bool {
-        match self {
-            Record::Fasta(t) => t.validate_format(),
-            Record::Fastq(t) => t.validate_format(),
-        }
+    pub fn validate_dnan(&self) -> bool {
+        self.seq().bytes().all(|x| x == b'A' || x == b'C' || x == b'T' || x == b'G' || x == b'N')
     }
 }
 
 pub struct Reader {
     reader: Box<dyn BufRead>,
     data: String,
-    is_fastq: bool
 }
 
 impl Reader {
-    pub fn new(r: Box<dyn BufRead>, is_fastq: bool) -> Self {
+    pub fn new(r: Box<dyn BufRead>) -> Self {
         Reader {
             reader: r,
             data: String::with_capacity(1024),
-            is_fastq: is_fastq
         }
     }
 
-    #[inline]
-    pub fn iter_record(&mut self) -> Option<Record> {
-        if self.is_fastq {
-            Some(Record::Fastq(self.iter_fastq()))
-        }else {
-            Some(Record::Fasta(self.iter_fasta()))
-        }
-    }
-
-    fn is_end(&mut self) -> bool {
-        self.data.clear();
+    fn reach_eof(&mut self) -> bool {
         loop {
+            self.data.clear();
             let head = self.reader.read_line(&mut self.data).expect("fail read record!");
             if head == 0 {return true;}
             if self.data.trim().is_empty() {continue;}
@@ -194,48 +97,49 @@ impl Reader {
         return false;
     }
 
-    #[inline]
-    fn iter_fastq(&mut self) -> Fastq {
+    pub fn iter_record(&mut self) -> Option<Fastx> {
 
-        let head = self.data.len();
-        let seq = head + self.reader.read_line(&mut self.data).expect("fail read record!");
-        let sep = seq + self.reader.read_line(&mut self.data).expect("fail read record!");
-        let qual = sep + self.reader.read_line(&mut self.data).expect("fail read record!");
-        if seq == head || sep == seq || qual == sep {
-            panic!("truncated fastq file");
+        let head = self.data.find(char::is_whitespace).unwrap() + 1;
+        let des = self.data.len();
+        let seq = des + self.reader.read_line(&mut self.data).expect("fail read record!");
+        let mut sep = seq;
+        let mut qual = seq;
+        let mut is_fasta = true;
+        if self.data.starts_with('@'){
+            is_fasta = false;
+            sep = seq + self.reader.read_line(&mut self.data).expect("fail read record!");
+            qual = sep + self.reader.read_line(&mut self.data).expect("fail read record!");
+            if seq == des || sep == seq || qual == sep {
+                panic!("truncated fastq file, problematic record: {:?}", self.data);
+            }
+        }else if seq == des {
+            panic!("truncated fasta file, problematic record: {:?}", self.data);
         }
-        let fastq = Fastq {
+        // println!("head:{:?} des {:?} seq {:?} qual {:?}", head,des,seq,qual);
+        let fastx = Fastx {
             _head: head,
+            _des: des,
             _seq: seq,
             _sep: sep,
             _qual: qual,
             _data: self.data.as_bytes()
             };
 
-        println!("{:?} {:?}", head, seq);
-        
-        if !fastq.validate_format() {
-            panic!("Not a validate fastq record {}.", fastq.head());
+        if is_fasta {
+            if !fastx.validate_fasta(){
+                panic!("Not a validate fasta record {}.", fastx.head());
+            }
+        }else if !fastx.validate_fastq() {
+            panic!("Not a validate fastq record {}.", fastx.head());
         }
-        fastq
+        Some(fastx)
     }
 
-    #[inline]
-    fn iter_fasta(&mut self) -> Fasta {
-        let head = self.data.len();
-        let seq = head + self.reader.read_line(&mut self.data).expect("fail read record!");
-        if seq == head {
-            panic!("truncated fasta file");
+    pub fn iter_record_check(&mut self) -> Option<Fastx> {
+        if !self.reach_eof() {
+            return self.iter_record();
         }
-        let fasta = Fasta {
-            _head: head,
-            _seq: seq,
-            _data: self.data.as_bytes()
-            };
-        if !fasta.validate_format() {
-            panic!("Not a validate fastq record {}.", fasta.head());
-        }
-        fasta
+        None
     }
 }
 
@@ -259,29 +163,25 @@ impl Reader {
 //     }
 // }
 
-pub struct Paths {
+pub struct Readers {
     index: usize,
-    pub paths: Vec<Result<Reader>>
+    pub readers: Vec<Reader>
 }
 
-impl Paths {
+impl Readers {
     pub fn new() -> Self {
-        Paths {
+        Readers {
             index: 0,
-            paths: Vec::new()
+            readers: Vec::new()
         }
     }
 
-    pub fn iter_record(&mut self) -> Option<Record> {
-        for idx in self.index..self.paths.len() {
-            if !self.paths[idx].as_mut().unwrap().is_end() {
-                match self.paths[idx].as_mut().unwrap().iter_record() {
-                    Some(r) => return Some(r),
-                    None => unreachable!(),
-                }
-            }else {
-                self.index += 1;
+    pub fn iter_record(&mut self) -> Option<Fastx> {
+        for idx in self.index..self.readers.len() {
+            if !self.readers[idx].reach_eof() {
+                return self.readers[idx].iter_record();
             }
+            self.index += 1;
         }
         None
     }
