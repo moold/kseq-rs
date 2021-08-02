@@ -1,7 +1,7 @@
-# fastx
-`fastx` is a simple fasta/fastq (fastx) format parser library for [Rust](https://www.rust-lang.org/), its main function is to iterate over the records from fastx files (similar to [kseq](https://attractivechaos.github.io/klib/#Kseq%3A%20stream%20buffer%20and%20FASTA%2FQ%20parser) in `C`). It uses shared buffer to read and store records, so the speed is very fast. It supports a plain or gz fastx file or [`io::stdin`](https://doc.rust-lang.org/std/io/fn.stdin.html), as well as a fofn (file-of-file-names) file, which contains multiple plain or gz fastx files (one per line).
+# kseq
+`kseq` is a simple fasta/fastq (fastx) format parser library for [Rust](https://www.rust-lang.org/), its main function is to iterate over the records from fastx files (similar to [kseq](https://attractivechaos.github.io/klib/#Kseq%3A%20stream%20buffer%20and%20FASTA%2FQ%20parser) in `C`). It uses shared buffer to read and store records, so the speed is very fast. It supports a plain or gz fastx file or [`io::stdin`](https://doc.rust-lang.org/std/io/fn.stdin.html), as well as a fofn (file-of-file-names) file, which contains multiple plain or gz fastx files (one per line).
 
-Using `fastx` is very simple. Users only need to call `parse_path` to parse the path, and then use `iter_record` method to get each record.
+Using `kseq` is very simple. Users only need to call `parse_path` to parse the path, and then use `iter_record` method to get each record.
 
 - `parse_path` This function takes a path (`Option<String>`) as input, a path can be a fastx file, `None` or `-` for [`io::stdin`](https://doc.rust-lang.org/std/io/fn.stdin.html), or a fofn file. It return a [`Result`](https://doc.rust-lang.org/std/result/) type:
 	- `Ok(T)`: An struct `T` with the `iter_record` method.
@@ -22,7 +22,7 @@ Using `fastx` is very simple. Users only need to call `parse_path` to parse the 
 # Examples
 ```
 use std::env::args;
-use fastx::path::parse_path;
+use kseq::path::parse_path;
 
 fn main(){
 	let path: Option<String> = args().nth(1);

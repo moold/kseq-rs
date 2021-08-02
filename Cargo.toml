@@ -1,12 +1,12 @@
 [package]
-name = "fastx"
+name = "kseq"
 version = "0.1.0"
 authors = ["Moold <mooldhu@gmail.com>"]
 edition = "2018"
 license = "MIT"
-description = "a simple fasta/fastq (fastx) format parser library"
-homepage = "https://github.com/moold/fastx"
-repository = "https://github.com/moold/fastx"
+description = "a simple fasta/fastq format parser library"
+homepage = "https://github.com/moold/kseq"
+repository = "https://github.com/moold/kseq"
 readme = "README.md"
 keywords  = ["fastq", "fasta"]
 
