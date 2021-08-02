@@ -4,12 +4,14 @@ use std::path::Path;
 
 use crate::record::{Reader, Readers, Fastx};
 
+/// Reader for a single path or Readers for multiple paths
 pub enum Paths {
     Reader(Reader),
     Readers(Readers)
 }
 
 impl Paths {
+    /// iterate a fatsx record for a Reader or Readers
     pub fn iter_record(&mut self) -> Option<Fastx> {
         match self {
             Paths::Reader(t) => t.iter_record_check(),
@@ -18,6 +20,7 @@ impl Paths {
     }
 }
 
+/// parse path to a Reader or Readers
 pub fn parse_path(path: Option<String>) -> Result<Paths>{
     let mut reader: Box<dyn BufRead> = match path.as_ref().map(String::as_str) {
         None | Some("-") => {
@@ -30,7 +33,7 @@ pub fn parse_path(path: Option<String>) -> Result<Paths>{
     let mut format_bytes = [0u8; 4];
     reader.read_exact(&mut format_bytes)?;
     reader = Box::new(Cursor::new(format_bytes.to_vec()).chain(reader));
-    if &format_bytes[..2] == b"\x1f\x8b" {
+    if &format_bytes[..2] == b"\x1f\x8b" {// for gz foramt
         reader = Box::new(BufReader::with_capacity(65536, MultiGzDecoder::new(reader)));
         format_bytes.iter_mut().for_each(|m| *m = 0);
         reader.read_exact(&mut format_bytes)?;
@@ -41,7 +44,7 @@ pub fn parse_path(path: Option<String>) -> Result<Paths>{
         b'@' | b'>' => {
             Ok(Paths::Reader(Reader::new(reader)))
         }
-        _ => {
+        _ => {// for a fofn file
             let mut paths = Readers::new();
             for _line in reader.lines().map(|l| l.unwrap()){
                 let line = _line.trim();

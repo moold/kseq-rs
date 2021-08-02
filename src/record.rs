@@ -1,5 +1,6 @@
 use std::{io::BufRead, str::from_utf8_unchecked};
 
+/// a structure representing the sequence in a fastx file
 pub struct Fastx<'a> {
     _head: usize,
     _des: usize,
@@ -10,16 +11,19 @@ pub struct Fastx<'a> {
 }
 
 impl Fastx<'_> {
+    /// get sequence id/identifier 
     #[inline]
     pub fn head(&self) -> &str {
         unsafe{ from_utf8_unchecked(&self._data[1 .. self._head - 1]) }
     }
 
+    /// get sequence
     #[inline]
     pub fn seq(&self) -> &str {
         unsafe{ from_utf8_unchecked(&self._data[self._des .. self._seq - 1]) }
     }
 
+    /// get sequence description/comment
     #[inline]
     pub fn des(&self) -> &str {
         if self._des != self._head {
@@ -29,6 +33,7 @@ impl Fastx<'_> {
         }
     }
 
+    /// get separator
     #[inline]
     pub fn sep(&self) -> &str {
         if self._seq != self._sep{
@@ -38,6 +43,7 @@ impl Fastx<'_> {
         }
     }
 
+    /// get quality scores
     #[inline]
     pub fn qual(&self) -> &str {
         if self._sep != self._qual {
@@ -47,38 +53,35 @@ impl Fastx<'_> {
         }
     }
     
+    /// get sequence length
     #[inline]
     pub fn len(&self) -> usize {
         self._seq - self._des - 1
     }
     
+    /// check a fastq record is valid
     fn validate_fastq(&self)-> bool {
         if self._seq - self._des != self._qual - self._sep || self._data[0] != b'@' {
             false
         }else {true}
     }
-
+    
+    /// check a fasta record is valid
     fn validate_fasta(&self)-> bool {
         if self._data[0] != b'>' {
             false
         }else {true}
     }
-
-    pub fn validate_dna(&self) -> bool {
-        self.seq().bytes().all(|x| x == b'A' || x == b'C' || x == b'T' || x == b'G')
-    }
-
-    pub fn validate_dnan(&self) -> bool {
-        self.seq().bytes().all(|x| x == b'A' || x == b'C' || x == b'T' || x == b'G' || x == b'N')
-    }
 }
 
+/// a Reader with shared buffer
 pub struct Reader {
     reader: Box<dyn BufRead>,
     data: String,
 }
 
 impl Reader {
+    /// create a new Reader
     pub fn new(r: Box<dyn BufRead>) -> Self {
         Reader {
             reader: r,
@@ -86,6 +89,7 @@ impl Reader {
         }
     }
 
+    /// check whether this Reader has reached EOF
     fn reach_eof(&mut self) -> bool {
         loop {
             self.data.clear();
@@ -97,6 +101,7 @@ impl Reader {
         return false;
     }
 
+    /// iterate over a record from this Reader
     pub fn iter_record(&mut self) -> Option<Fastx> {
 
         let head = self.data.find(char::is_whitespace).unwrap() + 1;
@@ -143,32 +148,15 @@ impl Reader {
     }
 }
 
-// impl<'a> Iterator for Record {
-//     type Item = Fastq<'a>;
-
-//     #[inline]
-//     fn next(&mut self) -> Option<Self::Item> {
-//         self.data.clear();
-//         let head = self.reader.read_line(&mut self.data).expect("fail read record!");
-//         let seq = head + self.reader.read_line(&mut self.data).expect("fail read record!");
-//         let sep = seq + self.reader.read_line(&mut self.data).expect("fail read record!");
-//         let qual = sep + self.reader.read_line(&mut self.data).expect("fail read record!");
-//         Some(Fastq {
-//             head: head,
-//             seq: seq,
-//             sep: sep,
-//             qual: qual,
-//             data: self.data.as_bytes()
-//         })
-//     }
-// }
-
+/// multiple readers for a fofn file
 pub struct Readers {
     index: usize,
     pub readers: Vec<Reader>
 }
 
 impl Readers {
+
+    /// create a new Readers
     pub fn new() -> Self {
         Readers {
             index: 0,
@@ -176,6 +164,7 @@ impl Readers {
         }
     }
 
+    /// iterate over a record from this Readers
     pub fn iter_record(&mut self) -> Option<Fastx> {
         for idx in self.index..self.readers.len() {
             if !self.readers[idx].reach_eof() {
