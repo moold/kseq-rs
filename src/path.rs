@@ -46,18 +46,22 @@ pub fn parse_path(path: Option<String>) -> Result<Paths>{
         }
         _ => {// for a fofn file
             let mut paths = Readers::new();
+            let _path = path.unwrap_or("".to_string());
+            let parent = Path::new(&_path).parent().unwrap_or(Path::new(""));
+
             for _line in reader.lines().map(|l| l.unwrap()){
                 let line = _line.trim();
                 if line.starts_with('#') || line.is_empty(){
                     continue;
                 }
-                if Path::new(line).exists(){
-                    match parse_path(Some(line.to_string())).unwrap() {
+                let _path = parent.join(line);// convert to a absolute path
+                if _path.exists(){
+                    match parse_path(Some(_path.to_str().unwrap().to_string()))? {
                         Paths::Reader(reader) => paths.readers.push(reader),
                         _ => unreachable!()
                     }
                 }else{
-                    return Err(Error::new(ErrorKind::InvalidData, "Not a valid fastq/fasta/fofn file"))
+                    return Err(Error::new(ErrorKind::InvalidData, format!("{:?} is not a valid fastq/fasta/fofn file", _path)))
                 }
             }
             Ok(Paths::Readers(paths))
