@@ -106,7 +106,7 @@ impl Reader {
 
         let head = self.data.find(char::is_whitespace).unwrap() + 1;
         let des = self.data.len();
-        let seq = des + self.reader.read_line(&mut self.data).expect("fail read record!");
+        let mut seq = des + self.reader.read_line(&mut self.data).expect("fail read record!");        
         let mut sep = seq;
         let mut qual = seq;
         let mut is_fasta = true;
@@ -117,8 +117,17 @@ impl Reader {
             if seq == des || sep == seq || qual == sep {
                 panic!("truncated fastq file, problematic record: {:?}", self.data);
             }
-        }else if seq == des {
-            panic!("truncated fasta file, problematic record: {:?}", self.data);
+        }else{
+            if seq == des {
+                panic!("truncated fasta file, problematic record: {:?}", self.data);
+            }
+
+            let mut _data = self.reader.fill_buf().unwrap(); // for multiline fasta
+            while _data.len() > 0 && _data[0] != b'>' {
+                self.data.pop();
+                seq += self.reader.read_line(&mut self.data).expect("fail read record!") - 1;
+                _data = self.reader.fill_buf().unwrap();
+            }
         }
         // println!("head:{:?} des {:?} seq {:?} qual {:?}", head,des,seq,qual);
         let fastx = Fastx {
