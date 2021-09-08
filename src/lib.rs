@@ -1,39 +1,74 @@
+#![doc = include_str!("../README.md")]
 // Note: kseq is inspired by fastq-rs and kseq in C
-//! # kseq
-//! `kseq` is a simple fasta/fastq (**fastx**) format parser library for [Rust](https://www.rust-lang.org/), its main function is to iterate over the records from fastx files (similar to [kseq](https://attractivechaos.github.io/klib/#Kseq%3A%20stream%20buffer%20and%20FASTA%2FQ%20parser) in `C`). It uses shared buffer to read and store records, so the speed is very fast. It supports a plain or gz fastx file or [`io::stdin`](https://doc.rust-lang.org/std/io/fn.stdin.html), as well as a fofn (file-of-file-names) file, which contains multiple plain or gz fastx files (one per line).
-//! 
-//! Using `kseq` is very simple. Users only need to call `parse_path` to parse the path, and then use `iter_record` method to get each record.
-//! 
-//! - `parse_path` This function takes a path (`Option<String>`) as input, a path can be a fastx file, `None` or `-` for [`io::stdin`](https://doc.rust-lang.org/std/io/fn.stdin.html), or a fofn file. It returns a [`Result`](https://doc.rust-lang.org/std/result/) type:
-//! 	- `Ok(T)`: An struct `T` with the `iter_record` method.
-//! 	- `Err(E)`: An error `E` including can't open or read, wrong fastx format or invalid path or file errors.
-//! 
-//! - `iter_record` This function can be called in a loop, it return an [`Option`](https://doc.rust-lang.org/std/option/index.html) type:
-//! 	- `Some(Record)`: An struct `Record` with methods:
-//! 		- `head -> &str`: get sequence id/identifier
-//! 		- `seq -> &str`:  get sequence
-//! 		- `des -> &str`:  get sequence description/comment
-//! 		- `sep -> &str`:  get separator
-//! 		- `qual -> &str`: get quality scores
-//! 		- `len -> usize`:  get sequence length
-//! 
-//! 		***Note:*** call `des`, `sep` and `qual` will return `""` if `Record` doesn't have these attributes. `head`, `seq`, `des`, `sep` and `qual` use unsafe code [`str::from_utf8_unchecked`](https://doc.rust-lang.org/std/str/fn.from_utf8_unchecked.html).
-//! 	- `None`: Stream has reached `EOF`.
-//! 
-//! # Examples
-//! ```
-//! use std::env::args;
-//! use kseq::path::parse_path;
-//! 
-//! fn main(){
-//! 	let path: Option<String> = args().nth(1);
-//! 	let mut records = parse_path(path).unwrap();
-//! 	while let Some(record) = records.iter_record() {
-//! 		println!("head:{} des:{} seq:{} qual:{} len:{}", 
-//! 			record.head(), record.des(), record.seq(), record.qual(), record.len());
-//! 	}
-//! }
-//! ```
 
-pub mod path;
+use std::io::{Result, Read, BufRead, BufReader, Error, ErrorKind, Cursor};
+use flate2::read::MultiGzDecoder;
+use std::path::Path;
+
 pub mod record;
+use record::{Reader, Readers, Fastx, Result as ParseResult};
+
+/// Reader for a single path or Readers for multiple paths
+pub enum Paths {
+    Reader(Reader),
+    Readers(Readers)
+}
+
+impl Paths {
+    /// iterate a fatsx record for a Reader or Readers
+    pub fn iter_record(&mut self) -> ParseResult<Option<Fastx>> {
+        match self {
+            Paths::Reader(t) => t.iter_record_check(),
+            Paths::Readers(t) => t.iter_record(),
+        }
+    }
+}
+
+/// parse path to a Reader or Readers
+pub fn parse_path(path: Option<String>) -> Result<Paths>{
+    let mut reader: Box<dyn BufRead> = match path.as_deref() {
+        None | Some("-") => {
+            Box::new(BufReader::with_capacity(65536, std::io::stdin()))
+        },
+        Some(path) => {
+            Box::new(BufReader::with_capacity(65536, std::fs::File::open(path)?))
+        }
+    };
+    let mut format_bytes = [0u8; 4];
+    reader.read_exact(&mut format_bytes)?;
+    reader = Box::new(Cursor::new(format_bytes.to_vec()).chain(reader));
+    if &format_bytes[..2] == b"\x1f\x8b" {// for gz foramt
+        reader = Box::new(BufReader::with_capacity(65536, MultiGzDecoder::new(reader)));
+        format_bytes.iter_mut().for_each(|m| *m = 0);
+        reader.read_exact(&mut format_bytes)?;
+        reader = Box::new(Cursor::new(format_bytes.to_vec()).chain(reader));
+    }
+
+    match format_bytes[0] {
+        b'@' | b'>' => {
+            Ok(Paths::Reader(Reader::new(reader)))
+        }
+        _ => {// for a fofn file
+            let mut paths = Readers::new();
+            let _path = path.unwrap_or_else(|| "".to_string());
+            let parent = Path::new(&_path).parent().unwrap_or_else(|| Path::new(""));
+
+            for _line in reader.lines().map(|l| l.unwrap()){
+                let line = _line.trim();
+                if line.starts_with('#') || line.is_empty(){
+                    continue;
+                }
+                let _path = parent.join(line);// convert to a absolute path
+                if _path.exists(){
+                    match parse_path(Some(_path.to_str().unwrap().to_string()))? {
+                        Paths::Reader(reader) => paths.readers.push(reader),
+                        _ => unreachable!()
+                    }
+                }else{
+                    return Err(Error::new(ErrorKind::InvalidData, format!("{:?} is not a valid fastq/fasta/fofn file", _path)))
+                }
+            }
+            Ok(Paths::Readers(paths))
+        }
+    }
+}
