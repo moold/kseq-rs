@@ -7,18 +7,18 @@ Using `kseq` is very simple. Users only need to call `parse_path` to parse the p
 	- `Ok(T)`: An struct `T` with the `iter_record` method.
 	- `Err(E)`: An error `E` including can't open or read, wrong fastx format or invalid path or file errors.
 
-- `iter_record` This function can be called in a loop, it return an `Result<Option<Record>>` type:
-	- `Ok(Some(Record))`: An struct `Record` with methods:
+- `iter_record` This function can be called in a loop, it returns a `Result<Option<Record>>` type:
+	- `Ok(Some(Record))`: A struct `Record` with methods:
 		- `head -> &str`: get sequence id/identifier
 		- `seq -> &str`:  get sequence
 		- `des -> &str`:  get sequence description/comment
 		- `sep -> &str`:  get separator
 		- `qual -> &str`: get quality scores
-		- `len -> usize`:  get sequence length
+		- `len -> usize`: get sequence length
 
 		***Note:*** call `des`, `sep` and `qual` will return `""` if `Record` doesn't have these attributes.
 	- `Ok(None)`: Stream has reached `EOF`.
-	- `Err(E)`: An error `E` including `IO`, `TruncateFile`, `InvalidFasta` or `InvalidFastq` errors.
+	- `Err(ParseError)`: An error [`ParseError`](https://docs.rs/kseq/0.2.0/kseq/record/enum.ParseError.html) including `IO`, `TruncateFile`, `InvalidFasta` or `InvalidFastq` errors.
 
 # Example
 ```
