@@ -1,4 +1,4 @@
-use std::{error, fmt, io};
+use std::{error, fmt, io, str};
 
 pub type Result<T> = std::result::Result<T, ParseError>;
 
@@ -41,27 +41,33 @@ pub struct Fastx<'a> {
 	_seq: usize,
 	_sep: usize,
 	_qual: usize,
-	_data: &'a str
+	_data: &'a Vec<u8>
 }
 
 impl Fastx<'_> {
 	/// get sequence id/identifier 
 	#[inline]
 	pub fn head(&self) -> &str {
-		&self._data[1 .. self._head - 1]
+		unsafe {
+			str::from_utf8_unchecked(&self._data[1 .. self._head - 1])
+		}
 	}
 
 	/// get sequence
 	#[inline]
 	pub fn seq(&self) -> &str {
-		&self._data[self._des .. self._seq - 1]
+		unsafe {
+			str::from_utf8_unchecked(&self._data[self._des .. self._seq - 1])
+		}
 	}
 
 	/// get sequence description/comment
 	#[inline]
 	pub fn des(&self) -> &str {
 		if self._des != self._head {
-			&self._data[self._head .. self._des - 1]
+			unsafe {
+				str::from_utf8_unchecked(&self._data[self._head .. self._des - 1])
+			}
 		}else {
 			""
 		}
@@ -71,7 +77,9 @@ impl Fastx<'_> {
 	#[inline]
 	pub fn sep(&self) -> &str {
 		if self._seq != self._sep{
-			&self._data[self._seq .. self._sep - 1]
+			unsafe {
+				str::from_utf8_unchecked(&self._data[self._seq .. self._sep - 1])
+			}
 		}else{
 			""
 		}
@@ -81,7 +89,9 @@ impl Fastx<'_> {
 	#[inline]
 	pub fn qual(&self) -> &str {
 		if self._sep != self._qual {
-			&self._data[self._sep .. self._qual - 1]
+			unsafe {
+				str::from_utf8_unchecked(&self._data[self._sep .. self._qual - 1])
+			}
 		}else{
 			""
 		}
@@ -95,19 +105,19 @@ impl Fastx<'_> {
 	
 	/// check a fastq record is valid
 	fn validate_fastq(&self)-> bool {
-		self._seq - self._des == self._qual - self._sep && self._data.starts_with('@')
+		self._seq - self._des == self._qual - self._sep && self._data[0] == b'@'
 	}
 
 	/// check a fasta record is valid
 	fn validate_fasta(&self)-> bool {
-		self._data.starts_with('>')
+		self._data[0] == b'>'
 	}
 }
 
 /// a Reader with shared buffer
 pub struct Reader {
 	reader: Box<dyn io::BufRead>,
-	data: String,
+	data: Vec<u8>,
 }
 
 impl Reader {
@@ -115,7 +125,7 @@ impl Reader {
 	pub fn new(r: Box<dyn io::BufRead>) -> Self {
 		Reader {
 			reader: r,
-			data: String::with_capacity(1024),
+			data: Vec::with_capacity(1024),
 		}
 	}
 
@@ -123,10 +133,10 @@ impl Reader {
 	fn reach_eof(&mut self) -> Result<bool> {
 		loop {
 			self.data.clear();
-			let head = self.reader.read_line(&mut self.data)?;
+			let head = self.reader.read_until(b'\n', &mut self.data)?;
 			if head == 0 {return Ok(true);}
-			if self.data.trim().is_empty() {continue;}
-			break;
+			// skip blank line, assume a valid line doesn't start with a space
+			if !char::is_whitespace(self.data[0] as char) {break;}
 		}
 		Ok(false)
 	}
@@ -134,29 +144,29 @@ impl Reader {
 	/// iterate over a record from this Reader
 	pub fn iter_record(&mut self) -> Result<Option<Fastx>> {
 
-		let head = self.data.find(char::is_whitespace).unwrap() + 1;
+		let head = self.data.iter().position(|&x| char::is_whitespace(x as char)).unwrap() + 1;
 		let des = self.data.len();
-		let mut seq = des + self.reader.read_line(&mut self.data)?;        
+		let mut seq = des + self.reader.read_until(b'\n', &mut self.data)?;
 		let mut sep = seq;
 		let mut qual = seq;
 		let mut is_fasta = true;
-		if self.data.starts_with('@'){
+		if self.data[0] == b'@' {
 			is_fasta = false;
-			sep = seq + self.reader.read_line(&mut self.data)?;
-			qual = sep + self.reader.read_line(&mut self.data)?;
+			sep = seq + self.reader.read_until(b'\n', &mut self.data)?;
+			qual = sep + self.reader.read_until(b'\n', &mut self.data)?;
 			if seq == des || sep == seq || qual == sep {
-				return Err(ParseError::TruncateFile(self.data.to_string()));
+				return Err(ParseError::TruncateFile(String::from_utf8(self.data.to_owned()).unwrap()));
 			}
 		}else{
 			if seq == des {
-				return Err(ParseError::TruncateFile(self.data.to_string()));
+				return Err(ParseError::TruncateFile(String::from_utf8(self.data.to_owned()).unwrap()));
 			}
 
 			loop {
-				let _data = self.reader.fill_buf().unwrap(); // for multiline fasta
+				let _data = self.reader.fill_buf()?; // for multiline fasta
 				if !_data.is_empty() && _data[0] != b'>' {
 					self.data.pop();
-					seq += self.reader.read_line(&mut self.data)? - 1;
+					seq += self.reader.read_until(b'\n', &mut self.data)? - 1;
 				}else {
 					break;
 				}
