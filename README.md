@@ -1,3 +1,6 @@
+[![Crates.io](https://img.shields.io/crates/d/kseq?logo=rust)](https://github.com/moold/kseq/archive/refs/heads/main.zip)
+[![Crates.io](https://img.shields.io/crates/v/kseq)](https://crates.io/crates/kseq)
+[![docs.rs](https://img.shields.io/docsrs/kseq)](https://docs.rs/kseq/)
 # kseq
 `kseq` is a simple fasta/fastq (**fastx**) format parser library for [Rust](https://www.rust-lang.org/), its main function is to iterate over the records from fastx files (similar to [kseq](https://attractivechaos.github.io/klib/#Kseq%3A%20stream%20buffer%20and%20FASTA%2FQ%20parser) in `C`). It uses shared buffer to read and store records, so the speed is very fast. It supports a plain or gz fastx file or [`io::stdin`](https://doc.rust-lang.org/std/io/fn.stdin.html), as well as a fofn (file-of-file-names) file, which contains multiple plain or gz fastx files (one per line).
 
@@ -30,7 +33,8 @@ fn main(){
 	let mut records = parse_path(path).unwrap();
 	while let Some(record) = records.iter_record().unwrap() {
 		println!("head:{} des:{} seq:{} qual:{} len:{}", 
-			record.head(), record.des(), record.seq(), record.qual(), record.len());
+			record.head(), record.des(), record.seq(), 
+			record.qual(), record.len());
 	}
 }
 ```
@@ -41,12 +45,12 @@ cargo bench
 ```
 We benchmarked `kseq` against [Needletail](https://docs.rs/needletail/0.4.1/needletail/) v0.4.1 to parse 500 megabases in multi-line fasta format and 4-line fastq format. The results are as follows:
 ```
-FASTQ parsing/kseq      time:   [945.98 ms 974.99 ms 1.0052 s]                              
-FASTQ parsing/needletail                                                                          
+FASTQ parsing/kseq      time:   [945.98 ms 974.99 ms 1.0052 s]
+FASTQ parsing/needletail                                     
                         time:   [1.0133 s 1.0323 s 1.0527 s]
 
-FASTA parsing/kseq      time:   [531.90 ms 544.50 ms 559.56 ms]                             
-FASTA parsing/needletail                                                                          
+FASTA parsing/kseq      time:   [531.90 ms 544.50 ms 559.56 ms]
+FASTA parsing/needletail                                      
                         time:   [620.42 ms 632.76 ms 649.72 ms]
 Found 2 outliers among 10 measurements (20.00%)
   2 (20.00%) high severe

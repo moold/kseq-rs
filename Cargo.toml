@@ -1,6 +1,6 @@
 [package]
 name = "kseq"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Moold <mooldhu@gmail.com>"]
 edition = "2018"
 license = "MIT"
@@ -16,7 +16,6 @@ flate2 = { version = ">=0.2.18", features = ["zlib"], default-features = false }
 [dev-dependencies]
 criterion = "0.3"
 needletail = "0.4"
-fastq = "0.6"
 
 [[bench]]
 name = "benchmark"
