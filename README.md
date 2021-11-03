@@ -24,7 +24,7 @@ Using `kseq` is very simple. Users only need to call `parse_path` to parse the p
 	- `Err(ParseError)`: An error [`ParseError`](https://docs.rs/kseq/0.2.0/kseq/record/enum.ParseError.html) including `IO`, `TruncateFile`, `InvalidFasta` or `InvalidFastq` errors.
 
 ## Example
-```
+```no_run 
 use std::env::args;
 use kseq::parse_path;
 
@@ -40,11 +40,11 @@ fn main(){
 ```
 
 ## Benchmark
-```
+```ignore
 cargo bench
 ```
 We benchmarked `kseq` against [Needletail](https://docs.rs/needletail/0.4.1/needletail/) v0.4.1 to parse 500 megabases in multi-line fasta format and 4-line fastq format. The results are as follows:
-```
+```ignore
 FASTQ parsing/kseq      time:   [945.98 ms 974.99 ms 1.0052 s]
 FASTQ parsing/needletail                                     
                         time:   [1.0133 s 1.0323 s 1.0527 s]
@@ -57,7 +57,7 @@ Found 2 outliers among 10 measurements (20.00%)
 ```
 
 ## Installation
-```
+```ignore
 [dependencies]
 kseq = "0.2"
 ```
