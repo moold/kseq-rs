@@ -150,29 +150,57 @@ impl Reader {
 		let mut sep = seq;
 		let mut qual = seq;
 		let mut is_fasta = true;
-		if self.data[0] == b'@' {
-			is_fasta = false;
-			sep = seq + self.reader.read_until(b'\n', &mut self.data)?;
-			qual = sep + self.reader.read_until(b'\n', &mut self.data)?;
-			if seq == des || sep == seq || qual == sep {
-				return Err(ParseError::TruncateFile(String::from_utf8(self.data.to_owned()).unwrap()));
-			}
-		}else{
-			if seq == des {
-				return Err(ParseError::TruncateFile(String::from_utf8(self.data.to_owned()).unwrap()));
-			}
-
-			loop {
-				let _data = self.reader.fill_buf()?; // for multiline fasta
-				if !_data.is_empty() && _data[0] != b'>' {
-					self.data.pop();
-					seq += self.reader.read_until(b'\n', &mut self.data)? - 1;
-				}else {
-					break;
+		if seq != des {
+			if self.data[0] == b'@' {
+				is_fasta = false;
+				let mut seq_line = 1;
+				loop {
+					let _data = self.reader.fill_buf()?; // for multiline fastq
+					if !_data.is_empty() && _data[0] != b'+' {
+						self.data.pop();
+						seq += self.reader.read_until(b'\n', &mut self.data)? - 1;
+						seq_line += 1;
+					}else {
+						break;
+					}
+				}
+				sep = seq + self.reader.read_until(b'\n', &mut self.data)?;
+				qual = sep + self.reader.read_until(b'\n', &mut self.data)?;
+				if qual != sep {
+					while seq_line > 1 {
+						self.data.pop();
+						let r = self.reader.read_until(b'\n', &mut self.data)?;
+						if r == 0 {
+							qual -= 1;
+							break;
+						}
+						qual += r - 1;
+						seq_line -= 1;
+					}
+					if self.data[qual - 1] != b'\n' { // for files not ending with '\n'
+						qual += 1;
+					}
+				}
+			}else{
+				loop {
+					let _data = self.reader.fill_buf()?; // for multiline fasta
+					if !_data.is_empty() && _data[0] != b'>' {
+						self.data.pop();
+						seq += self.reader.read_until(b'\n', &mut self.data)? - 1;
+					}else {
+						break;
+					}
+				}
+				if self.data[seq - 1] != b'\n' { // for files not ending with '\n'
+					seq += 1;
 				}
 			}
 		}
-		// println!("head:{:?} des {:?} seq {:?} qual {:?}", head,des,seq,qual);
+
+		if seq == des || !is_fasta && (sep == seq || qual == sep) {
+			return Err(ParseError::TruncateFile(String::from_utf8(self.data.to_owned()).unwrap()));
+		}
+		// println!("head:{:?} des {:?} seq {:?} sep {:?} qual {:?}", head,des,seq,sep,qual);
 		let fastx = Fastx {
 			_head: head,
 			_des: des,
