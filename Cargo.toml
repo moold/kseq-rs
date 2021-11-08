@@ -1,6 +1,6 @@
 [package]
 name = "kseq"
-version = "0.2.4"
+version = "0.2.5"
 authors = ["Moold <mooldhu@gmail.com>"]
 edition = "2018"
 license = "MIT"
@@ -11,6 +11,7 @@ readme = "README.md"
 keywords  = ["fastq", "fasta"]
 
 [dependencies]
+atty = "0.2"
 flate2 = { version = ">=0.2.18", features = ["zlib"], default-features = false }
 
 [dev-dependencies]
