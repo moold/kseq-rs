@@ -8,7 +8,7 @@ Using `kseq` is very simple. Users only need to call `parse_path` to parse the p
 
 - `parse_path` This function takes a path (`Option<String>`) as input, a path can be a fastx file, `None` or `-` for [`io::stdin`](https://doc.rust-lang.org/std/io/fn.stdin.html), or a fofn file. It returns a `Result` type:
 	- `Ok(T)`: A struct `T` with the `iter_record` method.
-	- `Err(E)`: An error `E` including can't open or read, wrong fastx format or invalid path or file errors.
+	- `Err(E)`: An error `E` including missing input, can't open or read, wrong fastx format or invalid path or file errors.
 
 - `iter_record` This function can be called in a loop, it returns a `Result<Option<Record>>` type:
 	- `Ok(Some(Record))`: A struct `Record` with methods:
