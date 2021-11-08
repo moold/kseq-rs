@@ -4,6 +4,7 @@
 use std::io::{Result, Read, BufRead, BufReader, Error, ErrorKind, Cursor};
 use flate2::read::MultiGzDecoder;
 use std::path::Path;
+use atty;
 
 pub mod record;
 use record::{Reader, Readers, Fastx, Result as ParseResult};
@@ -28,12 +29,16 @@ impl Paths {
 pub fn parse_path(path: Option<String>) -> Result<Paths>{
     let mut reader: Box<dyn BufRead> = match path.as_deref() {
         None | Some("-") => {
+            if atty::is(atty::Stream::Stdin) {
+                return Err(Error::new(ErrorKind::InvalidInput, "Missing input"));
+            }
             Box::new(BufReader::with_capacity(65536, std::io::stdin()))
         },
         Some(path) => {
             Box::new(BufReader::with_capacity(65536, std::fs::File::open(path)?))
         }
     };
+
     let mut format_bytes = [0u8; 4];
     reader.read_exact(&mut format_bytes)?;
     reader = Box::new(Cursor::new(format_bytes.to_vec()).chain(reader));
