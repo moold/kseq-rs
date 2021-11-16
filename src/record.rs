@@ -194,13 +194,15 @@ impl Reader {
 				if self.data[seq - 1] != b'\n' { // for files not ending with '\n'
 					seq += 1;
 				}
+				sep = seq; //reset sep & qual
+				qual = sep;
 			}
 		}
 
 		if seq == des || !is_fasta && (sep == seq || qual == sep) {
 			return Err(ParseError::TruncateFile(String::from_utf8(self.data.to_owned()).unwrap()));
 		}
-		// println!("head:{:?} des {:?} seq {:?} sep {:?} qual {:?}", head,des,seq,sep,qual);
+		//println!("head:{:?} des {:?} seq {:?} sep {:?} qual {:?}", head,des,seq,sep,qual);
 		let fastx = Fastx {
 			_head: head,
 			_des: des,
