@@ -26,7 +26,10 @@ impl Paths {
 }
 
 /// parse path to a Reader or Readers
-pub fn parse_path(path: Option<String>) -> Result<Paths>{
+pub fn parse_path<T>(path: T) -> Result<Paths>
+    where T: Into<Option<String>>
+{
+    let path = path.into();
     let mut reader: Box<dyn BufRead> = match path.as_deref() {
         None | Some("-") => {
             if atty::is(atty::Stream::Stdin) {
