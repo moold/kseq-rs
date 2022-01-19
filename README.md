@@ -21,7 +21,7 @@ Using `kseq` is very simple. Users only need to call `parse_path` to parse the p
 
 		***Note:*** call `des`, `sep` and `qual` will return `""` if `Record` doesn't have these attributes.
 	- `Ok(None)`: Stream has reached `EOF`.
-	- `Err(ParseError)`: An error [`ParseError`](https://docs.rs/kseq/0.2.0/kseq/record/enum.ParseError.html) including `IO`, `TruncateFile`, `InvalidFasta` or `InvalidFastq` errors.
+	- `Err(ParseError)`: An error [`ParseError`](https://docs.rs/kseq/0.2.7/kseq/record/enum.ParseError.html) including `IO`, `TruncateFile`, `InvalidFasta` or `InvalidFastq` errors.
 
 ## Example
 ```no_run 
