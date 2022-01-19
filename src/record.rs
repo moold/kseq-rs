@@ -9,9 +9,9 @@ pub enum ParseError {
 	Io(io::Error),
 	/// A truncated record was found
 	TruncateFile(String),
-	/// Not a validate fasta record, a record didn't start with `>`
+	/// Not a validate fasta record, a record didn't start with `>` or sequence length is 0
 	InvalidFasta(String),
-	/// Not a validate fastq record, a record didn't start with `@` or sequence and quality lengths are not equal 
+	/// Not a validate fastq record, a record didn't start with `@` or sequence and quality lengths are not equal or 0 
 	InvalidFastq(String)
 }
 
@@ -105,12 +105,12 @@ impl Fastx<'_> {
 	
 	/// check a fastq record is valid
 	fn validate_fastq(&self)-> bool {
-		self._seq - self._des == self._qual - self._sep && self._data[0] == b'@'
+		self._seq - self._des == self._qual - self._sep && self._data[0] == b'@' && self.len() != 0
 	}
 
 	/// check a fasta record is valid
 	fn validate_fasta(&self)-> bool {
-		self._data[0] == b'>'
+		self._data[0] == b'>' && self.len() != 0
 	}
 }
 

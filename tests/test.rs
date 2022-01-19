@@ -86,9 +86,22 @@ fn test_invalid_fasta() {
 }
 
 #[test]
+fn test_invalid_fasta_with_seq_len_is_0() {
+	let data:Vec<u8> = format!(">1 record1\n{seq}\n>2 record2\n{seq}", seq="").into_bytes();
+	assert_err!(count_base(data), Err(kseq::record::ParseError::InvalidFasta(_)));
+}
+
+#[test]
 fn test_invalid_fastq_seq_has_diff_len_with_qual() {
 	let data:Vec<u8> = format!("@1 record1\n{seq}{seq}\n+\n{qual}{qual}\n@2 record2\n{seq}{seq}\n+\n{qual}{qual}\n",
 		seq=BASE_SEQ, qual=&BASE_QUAL[0..BASE_SEQ.len() - 1]).into_bytes();
+	assert_err!(count_base(data), Err(kseq::record::ParseError::InvalidFastq(_)));
+}
+
+#[test]
+fn test_invalid_fastq_with_seq_len_is_0() {
+	let data:Vec<u8> = format!("@1 record1\n{seq}\n+\n{qual}\n@2 record2\n{seq}\n+\n{qual}\n",
+		seq="", qual="").into_bytes();
 	assert_err!(count_base(data), Err(kseq::record::ParseError::InvalidFastq(_)));
 }
 
