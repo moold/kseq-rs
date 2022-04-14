@@ -1,6 +1,6 @@
 [package]
 name = "kseq"
-version = "0.2.7"
+version = "0.2.8"
 authors = ["Moold <mooldhu@gmail.com>"]
 edition = "2018"
 license = "MIT"
@@ -12,7 +12,7 @@ keywords  = ["fastq", "fasta"]
 
 [dependencies]
 atty = "0.2"
-flate2 = { version = ">=0.2.18", features = ["zlib"], default-features = false }
+flate2 = { version = ">=1.0.17", features = ["zlib-ng-compat"], default-features = false }
 
 [dev-dependencies]
 criterion = "0.3"
