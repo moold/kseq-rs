@@ -9,6 +9,27 @@ use atty;
 pub mod record;
 use record::{Reader, Readers, Fastx, Result as ParseResult};
 
+// A wrapper that allows parse_path to accept Option<String>, String and &str as parameter
+pub struct Wrapper(String);
+
+impl From<Option<String>> for Wrapper {
+    fn from(path: Option<String>) -> Self {
+        Wrapper(path.unwrap_or("-".into()))
+    }
+}
+
+impl From<String> for Wrapper {
+    fn from(path: String) -> Self {
+        Wrapper(path)
+    }
+}
+
+impl From<&str> for Wrapper {
+    fn from(path: &str) -> Self {
+        Wrapper(path.into())
+    }
+}
+
 /// Reader for a single path or Readers for multiple paths
 pub enum Paths {
     Reader(Reader),
@@ -27,19 +48,16 @@ impl Paths {
 
 /// parse path to a Reader or Readers
 pub fn parse_path<T>(path: T) -> Result<Paths>
-    where T: Into<Option<String>>
+    where T: Into<Wrapper>
 {
-    let path = path.into();
-    let mut reader: Box<dyn BufRead> = match path.as_deref() {
-        None | Some("-") => {
-            if atty::is(atty::Stream::Stdin) {
-                return Err(Error::new(ErrorKind::InvalidInput, "Missing input"));
-            }
-            Box::new(BufReader::with_capacity(65536, std::io::stdin()))
-        },
-        Some(path) => {
-            Box::new(BufReader::with_capacity(65536, std::fs::File::open(path)?))
+    let path = path.into().0;
+    let mut reader: Box<dyn BufRead> = if path == "-" {
+        if atty::is(atty::Stream::Stdin) {
+            return Err(Error::new(ErrorKind::InvalidInput, "Missing input"));
         }
+        Box::new(BufReader::with_capacity(65536, std::io::stdin()))
+    }else {
+        Box::new(BufReader::with_capacity(65536, std::fs::File::open(&path)?))
     };
 
     let mut format_bytes = [0u8; 4];
@@ -58,7 +76,11 @@ pub fn parse_path<T>(path: T) -> Result<Paths>
         }
         _ => {// for a fofn file
             let mut paths = Readers::new();
-            let _path = path.unwrap_or_else(|| "".to_string());
+            let _path = if path == "-" {
+                ""
+            }else{
+                &path
+            };
             let parent = Path::new(&_path).parent().unwrap_or_else(|| Path::new(""));
 
             for _line in reader.lines().map(|l| l.unwrap()){
