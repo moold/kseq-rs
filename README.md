@@ -6,7 +6,7 @@
 
 Using `kseq` is very simple. Users only need to call `parse_path` to parse the path, and then use `iter_record` method to get each record.
 
-- `parse_path` This function takes a path (`Option<String>` or `String`) as input, a path can be a fastx file, `None` or `-` for [`io::stdin`](https://doc.rust-lang.org/std/io/fn.stdin.html), or a fofn file. It returns a `Result` type:
+- `parse_path` This function takes a path (`Option<String>` or `String` or `&str`) as input, a path can be a `fastx` file, `None` or `-` for [`io::stdin`](https://doc.rust-lang.org/std/io/fn.stdin.html), or a `fofn` file. It returns a `Result` type:
 	- `Ok(T)`: A struct `T` with the `iter_record` method.
 	- `Err(E)`: An error `E` including missing input, can't open or read, wrong fastx format or invalid path or file errors.
 
@@ -21,7 +21,7 @@ Using `kseq` is very simple. Users only need to call `parse_path` to parse the p
 
 		***Note:*** call `des`, `sep` and `qual` will return `""` if `Record` doesn't have these attributes.
 	- `Ok(None)`: Stream has reached `EOF`.
-	- `Err(ParseError)`: An error [`ParseError`](https://docs.rs/kseq/0.2.7/kseq/record/enum.ParseError.html) including `IO`, `TruncateFile`, `InvalidFasta` or `InvalidFastq` errors.
+	- `Err(ParseError)`: An error [`ParseError`](https://docs.rs/kseq/0.3.0/kseq/record/enum.ParseError.html) including `IO`, `TruncateFile`, `InvalidFasta` or `InvalidFastq` errors.
 
 ## Example
 ```no_run 
@@ -40,7 +40,7 @@ fn main(){
 ```
 
 ## Installation
-```ignore
+```text 
 [dependencies]
-kseq = "0.2"
+kseq = "0.3"
 ```
