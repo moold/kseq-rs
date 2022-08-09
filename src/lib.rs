@@ -29,6 +29,12 @@ impl From<&str> for Wrapper {
     }
 }
 
+impl From<&&str> for Wrapper {
+    fn from(path: &&str) -> Self {
+        Wrapper((*path).into())
+    }
+}
+
 /// Reader for a single path or Readers for multiple paths
 pub enum Paths {
     Reader(Reader),
@@ -84,7 +90,7 @@ where
                 if line.starts_with('#') || line.is_empty() {
                     continue;
                 }
-                let _path = parent.join(line); // convert to a absolute path
+                let _path = parent.join(line); // convert to an absolute path
                 if _path.exists() {
                     match parse_path(Some(_path.to_str().unwrap().to_string()))? {
                         Paths::Reader(reader) => paths.readers.push(reader),
