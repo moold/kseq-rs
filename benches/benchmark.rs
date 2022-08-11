@@ -69,9 +69,7 @@ fn bench_fasta_file(c: &mut Criterion) {
     group.bench_function("kseq", |bench| {
         bench.iter(|| {
             let mut n_bases = 0;
-            let mut records = kseq::Paths::Reader(kseq::record::Reader::new(Box::new(
-                Cursor::new(data.clone()),
-            )));
+            let mut records = kseq::parse_reader(Cursor::new(data.clone())).unwrap();
             while let Ok(Some(record)) = records.iter_record() {
                 n_bases += record.seq().len() as u64;
             }
@@ -103,9 +101,7 @@ fn bench_fastq_file(c: &mut Criterion) {
     group.bench_function("kseq", |bench| {
         bench.iter(|| {
             let mut n_bases = 0;
-            let mut records = kseq::Paths::Reader(kseq::record::Reader::new(Box::new(
-                Cursor::new(data.clone()),
-            )));
+            let mut records = kseq::parse_reader(Cursor::new(data.clone())).unwrap();
             while let Ok(Some(record)) = records.iter_record() {
                 n_bases += record.seq().len() as u64;
             }

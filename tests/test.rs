@@ -15,7 +15,7 @@ macro_rules! assert_err {
 fn count_base(input: Vec<u8>) -> Result<usize, kseq::record::ParseError> {
     let mut len_bases = 0;
     let mut seq_bases = 0;
-    let mut records = kseq::Paths::Reader(kseq::record::Reader::new(Box::new(Cursor::new(input))));
+    let mut records = kseq::parse_reader(Cursor::new(input))?;
     while let Some(record) = records.iter_record()? {
         len_bases += record.len();
         seq_bases += record.seq().len();
@@ -104,8 +104,7 @@ fn test_truncate_fastq_miss_qual() {
 
 #[test]
 fn test_invalid_fasta() {
-    let data: Vec<u8> =
-        format!("+1 record1\n{seq}\n>2 record2\n{seq}", seq = BASE_SEQ).into_bytes();
+    let data: Vec<u8> = format!(">1 record1\n\n>2 record2\n{seq}", seq = BASE_SEQ).into_bytes();
     assert_err!(
         count_base(data),
         Err(kseq::record::ParseError::InvalidFasta(_))

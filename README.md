@@ -4,9 +4,13 @@
 # kseq
 `kseq` is a simple fasta/fastq (**fastx**) format parser library for [Rust](https://www.rust-lang.org/), its main function is to iterate over the records from fastx files (similar to [kseq](https://attractivechaos.github.io/klib/#Kseq%3A%20stream%20buffer%20and%20FASTA%2FQ%20parser) in `C`). It uses shared buffer to read and store records, so the speed is very fast. It supports a plain or gz fastx file or [`io::stdin`](https://doc.rust-lang.org/std/io/fn.stdin.html), as well as a fofn (file-of-file-names) file, which contains multiple plain or gz fastx files (one per line).
 
-Using `kseq` is very simple. Users only need to call `parse_path` to parse the path, and then use `iter_record` method to get each record.
+Using `kseq` is very simple. Users only need to call `parse_path` to parse a path or `parse_reader` to parse a reader, and then use `iter_record` method to get each record.
 
-- `parse_path` This function takes a path (`Option<String>` or `String` or `&str`) as input, a path can be a `fastx` file, `None` or `-` for [`io::stdin`](https://doc.rust-lang.org/std/io/fn.stdin.html), or a `fofn` file. It returns a `Result` type:
+- `parse_path` This function takes a path that implements [`AsRef<std::path::Path>`](https://doc.rust-lang.org/std/path/struct.Path.html) as input, a path can be a `fastx` file, `-` for [`io::stdin`](https://doc.rust-lang.org/std/io/fn.stdin.html), or a `fofn` file. It returns a `Result` type:
+	- `Ok(T)`: A struct `T` with the `iter_record` method.
+	- `Err(E)`: An error `E` including missing input, can't open or read, wrong fastx format or invalid path or file errors.
+
+- `parse_reader` This function takes a reader that implements [`std::io::Read`](https://doc.rust-lang.org/std/io/trait.Read.html) as input. It returns a `Result` type:
 	- `Ok(T)`: A struct `T` with the `iter_record` method.
 	- `Err(E)`: An error `E` including missing input, can't open or read, wrong fastx format or invalid path or file errors.
 
@@ -26,11 +30,13 @@ Using `kseq` is very simple. Users only need to call `parse_path` to parse the p
 ## Example
 ```no_run 
 use std::env::args;
+use std::fs::File;
 use kseq::parse_path;
 
 fn main(){
-	let path: Option<String> = args().nth(1);
+	let path: String = args().nth(1).unwrap();
 	let mut records = parse_path(path).unwrap();
+	// let mut records = parse_reader(File::open(path).unwrap()).unwrap();
 	while let Some(record) = records.iter_record().unwrap() {
 		println!("head:{} des:{} seq:{} qual:{} len:{}", 
 			record.head(), record.des(), record.seq(), 
@@ -41,6 +47,5 @@ fn main(){
 
 ## Installation
 ```text 
-[dependencies]
-kseq = "0.3"
+cargo add kseq
 ```
