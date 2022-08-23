@@ -13,6 +13,7 @@ keywords  = ["fastq", "fasta"]
 [dependencies]
 atty = "0.2"
 flate2 = { version = ">=1.0.17", features = ["zlib-ng-compat"], default-features = false }
+memchr = "2.5"
 
 [dev-dependencies]
 criterion = "0.3"
@@ -21,3 +22,4 @@ needletail = "0.4"
 [[bench]]
 name = "benchmark"
 harness = false
+
