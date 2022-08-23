@@ -60,16 +60,16 @@ fn simulate_fasta(total: usize) -> Vec<u8> {
 }
 
 fn bench_fasta_file(c: &mut Criterion) {
-    let n_total = 500_000_000;
+    let n_total = 5_000_000_000;
     let data = simulate_fasta(n_total);
 
-    let mut group = c.benchmark_group("FASTA parsing");
+    let mut group = c.benchmark_group("FASTA parsing(5GB)");
     group.sample_size(10);
 
     group.bench_function("kseq", |bench| {
         bench.iter(|| {
             let mut n_bases = 0;
-            let mut records = kseq::parse_reader(Cursor::new(data.clone())).unwrap();
+            let mut records = kseq::parse_reader(Cursor::new(&data)).unwrap();
             while let Ok(Some(record)) = records.iter_record() {
                 n_bases += record.seq().len() as u64;
             }
@@ -80,7 +80,7 @@ fn bench_fasta_file(c: &mut Criterion) {
     group.bench_function("needletail", |bench| {
         bench.iter(|| {
             let mut n_bases = 0;
-            let mut records = FastaReader::new(Cursor::new(data.clone()));
+            let mut records = FastaReader::new(Cursor::new(&data));
             while let Some(Ok(record)) = records.next() {
                 n_bases += record.seq().len() as u64;
             }
@@ -92,16 +92,16 @@ fn bench_fasta_file(c: &mut Criterion) {
 }
 
 fn bench_fastq_file(c: &mut Criterion) {
-    let n_total = 500_000_000;
+    let n_total = 5_000_000_000;
     let data = simulate_fastq(n_total);
 
-    let mut group = c.benchmark_group("FASTQ parsing");
+    let mut group = c.benchmark_group("FASTQ parsing(5GB)");
     group.sample_size(10);
 
     group.bench_function("kseq", |bench| {
         bench.iter(|| {
             let mut n_bases = 0;
-            let mut records = kseq::parse_reader(Cursor::new(data.clone())).unwrap();
+            let mut records = kseq::parse_reader(Cursor::new(&data)).unwrap();
             while let Ok(Some(record)) = records.iter_record() {
                 n_bases += record.seq().len() as u64;
             }
@@ -112,7 +112,7 @@ fn bench_fastq_file(c: &mut Criterion) {
     group.bench_function("needletail", |bench| {
         bench.iter(|| {
             let mut n_bases = 0;
-            let mut records = FastqReader::new(Cursor::new(data.clone()));
+            let mut records = FastqReader::new(Cursor::new(&data));
             while let Some(Ok(record)) = records.next() {
                 n_bases += record.seq().len() as u64;
             }

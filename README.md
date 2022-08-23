@@ -49,3 +49,8 @@ fn main(){
 ```text 
 cargo add kseq
 ```
+
+## Benchmarking 
+```text
+cargo bench
+```

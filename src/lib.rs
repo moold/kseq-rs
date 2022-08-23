@@ -11,15 +11,15 @@ use std::{
 pub mod record;
 use record::{Fastx, Reader, Readers, Result as ParseResult};
 
-/// Reader for a single path or Readers for multiple paths
-pub enum Paths {
-    Reader(Reader),
-    Readers(Readers),
+/// a reader for a single path or readers for multiple paths
+pub enum Paths<'a> {
+    Reader(Reader<'a>),
+    Readers(Readers<'a>),
 }
 
-impl Paths {
+impl<'a> Paths<'a> {
     // parse a reader to a Reader or Readers
-    fn new(mut reader: Box<dyn BufRead>, path: &Path) -> Result<Self> {
+    fn new(mut reader: Box<dyn BufRead + 'a>, path: &Path) -> Result<Self> {
         let mut format_bytes = [0u8; 4];
         reader.read_exact(&mut format_bytes)?;
         reader = Box::new(Cursor::new(format_bytes.to_vec()).chain(reader));
@@ -65,14 +65,14 @@ impl Paths {
     /// iterate a fatsx record for a Reader or Readers
     pub fn iter_record(&mut self) -> ParseResult<Option<Fastx>> {
         match self {
-            Paths::Reader(t) => t.iter_record_check(),
+            Paths::Reader(t) => t.iter_record(),
             Paths::Readers(t) => t.iter_record(),
         }
     }
 }
 
 /// parse path to a Reader or Readers
-pub fn parse_path<P: AsRef<Path>>(path: P) -> Result<Paths> {
+pub fn parse_path<'a, P: AsRef<Path> + 'a>(path: P) -> Result<Paths<'a>> {
     let path = path.as_ref();
     let reader: Box<dyn BufRead> = if path == Path::new("-") {
         if atty::is(atty::Stream::Stdin) {
@@ -86,7 +86,7 @@ pub fn parse_path<P: AsRef<Path>>(path: P) -> Result<Paths> {
 }
 
 /// parse reader to a Reader or Readers
-pub fn parse_reader<R: Read + 'static>(reader: R) -> Result<Paths> {
+pub fn parse_reader<'a, R: Read + 'a>(reader: R) -> Result<Paths<'a>> {
     Paths::new(
         Box::new(BufReader::with_capacity(65536, reader)),
         Path::new(""),
