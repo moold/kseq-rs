@@ -130,7 +130,7 @@ fn test_invalid_fastq_seq_has_diff_len_with_qual() {
     .into_bytes();
     assert_err!(
         count_base(data),
-        Err(kseq::record::ParseError::InvalidFastq(_))
+        Err(kseq::record::ParseError::InvalidFastx(_))
     );
 }
 
