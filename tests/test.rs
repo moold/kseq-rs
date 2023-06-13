@@ -103,6 +103,29 @@ fn test_truncate_fastq_miss_qual() {
 }
 
 #[test]
+fn test_truncate_fasta_miss_head() {
+    let data: Vec<u8> = format!(">1 record1\n{seq}\n>\n{seq}", seq = BASE_SEQ).into_bytes();
+    assert_err!(
+        count_base(data),
+        Err(kseq::record::ParseError::TruncateFile(_))
+    );
+}
+
+#[test]
+fn test_truncate_fastq_miss_head() {
+    let data: Vec<u8> = format!(
+        "@1 record1\n{seq}{seq}\n+\n{qual}{qual}\n@\n{seq}{seq}\n+\n{qual}{qual}\n",
+        seq = BASE_SEQ,
+        qual = BASE_QUAL
+    )
+    .into_bytes();
+    assert_err!(
+        count_base(data),
+        Err(kseq::record::ParseError::TruncateFile(_))
+    );
+}
+
+#[test]
 fn test_invalid_fasta() {
     let data: Vec<u8> = format!(">1 record1\n\n>2 record2\n{seq}", seq = BASE_SEQ).into_bytes();
     assert_err!(

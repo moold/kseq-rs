@@ -1,6 +1,6 @@
 [package]
 name = "kseq"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Moold <mooldhu@gmail.com>"]
 edition = "2018"
 license = "MIT"

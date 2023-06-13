@@ -310,7 +310,7 @@ impl<'a> Reader<'a> {
             qual = sep + self.read_exact(seq - des)?;
         }
 
-        if (seq == des || !is_fasta && (sep == seq || qual == sep)) && !self.has_data_left()? {
+        if (head == 1 || seq == des || !is_fasta && (sep == seq || qual == sep)) && !self.has_data_left()? {
             // safely unwrap
             return Err(ParseError::TruncateFile(
                 String::from_utf8(self.data.to_owned()).unwrap(),
