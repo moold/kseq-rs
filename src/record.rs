@@ -125,12 +125,12 @@ impl Fastx<'_> {
 
     /// check a fastq record is valid
     fn validate_fastq(&self) -> bool {
-        self.is_fastq() && !self.is_empty() && self._seq - self._des == self._qual - self._sep
+        self.is_fastq() && !self.is_empty() && self._seq - self._des == self._qual - self._sep && self._head > 1
     }
 
     /// check a fasta record is valid
     fn validate_fasta(&self) -> bool {
-        self.is_fasta() && !self.is_empty()
+        self.is_fasta() && !self.is_empty() && self._head > 1
     }
 }
 
@@ -151,10 +151,16 @@ impl<'a> Reader<'a> {
 
     // Check if this reader has any data left to be read.
     fn has_data_left(&mut self) -> Result<bool> {
-        self.reader
-            .fill_buf()
-            .map(|v| v.iter().any(|&x| !char::is_whitespace(x as char)))
-            .map_err(ParseError::Io)
+        loop{
+            let available = self.reader.fill_buf().map_err(ParseError::Io)?;
+            if available.iter().any(|&x| !char::is_whitespace(x as char)){
+                return Ok(true);
+            }else if available.is_empty() {
+                return Ok(false);
+            }
+            let len = available.len();
+            self.reader.consume(len);
+        }
     }
 
     // Return the next byte of the internal buffer
@@ -310,7 +316,7 @@ impl<'a> Reader<'a> {
             qual = sep + self.read_exact(seq - des)?;
         }
 
-        if (head == 1 || seq == des || !is_fasta && (sep == seq || qual == sep)) && !self.has_data_left()? {
+        if !self.has_data_left()? && (head == 1 || seq == des || (!is_fasta && (sep == seq || qual == sep))){
             // safely unwrap
             return Err(ParseError::TruncateFile(
                 String::from_utf8(self.data.to_owned()).unwrap(),
