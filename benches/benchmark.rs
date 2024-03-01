@@ -60,11 +60,11 @@ fn simulate_fasta(total: usize) -> Vec<u8> {
 }
 
 fn bench_fasta_file(c: &mut Criterion) {
-    let n_total = 5_000_000_000;
+    let n_total = 1_000_000_000;
     let data = simulate_fasta(n_total);
 
-    let mut group = c.benchmark_group("FASTA parsing(5GB)");
-    group.sample_size(10);
+    let mut group = c.benchmark_group("FASTA parsing(1GB)");
+    group.sample_size(30);
 
     group.bench_function("kseq", |bench| {
         bench.iter(|| {
@@ -92,11 +92,11 @@ fn bench_fasta_file(c: &mut Criterion) {
 }
 
 fn bench_fastq_file(c: &mut Criterion) {
-    let n_total = 5_000_000_000;
+    let n_total = 1_000_000_000;
     let data = simulate_fastq(n_total);
 
-    let mut group = c.benchmark_group("FASTQ parsing(5GB)");
-    group.sample_size(10);
+    let mut group = c.benchmark_group("FASTQ parsing(1GB)");
+    group.sample_size(30);
 
     group.bench_function("kseq", |bench| {
         bench.iter(|| {

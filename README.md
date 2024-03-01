@@ -2,7 +2,7 @@
 [![Crates.io](https://img.shields.io/crates/v/kseq)](https://crates.io/crates/kseq)
 [![docs.rs](https://img.shields.io/docsrs/kseq)](https://docs.rs/kseq/)
 # kseq
-`kseq` is a simple fasta/fastq (**fastx**) format parser library for [Rust](https://www.rust-lang.org/), its main function is to iterate over the records from fastx files (similar to [kseq](https://attractivechaos.github.io/klib/#Kseq%3A%20stream%20buffer%20and%20FASTA%2FQ%20parser) in `C`). It uses shared buffer to read and store records, so the speed is very fast. It supports a plain or gz fastx file or [`io::stdin`](https://doc.rust-lang.org/std/io/fn.stdin.html), as well as a fofn (file-of-file-names) file, which contains multiple plain or gz fastx files (one per line).
+`kseq` is a simple fasta/fastq (**fastx**) format parser library for [Rust](https://www.rust-lang.org/), its main function is to iterate over the records from fastx files (similar to [kseq](https://attractivechaos.github.io/klib/#Kseq%3A%20stream%20buffer%20and%20FASTA%2FQ%20parser) in `C`). It uses shared buffer to read and store records, so the speed is very fast. It supports a **plain** or **gz** fastx file or [`io::stdin`](https://doc.rust-lang.org/std/io/fn.stdin.html), as well as a **fofn** (file-of-file-names) file, which contains multiple plain or gz fastx files (one per line).
 
 Using `kseq` is very simple. Users only need to call `parse_path` to parse a path or `parse_reader` to parse a reader, and then use `iter_record` method to get each record.
 
