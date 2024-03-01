@@ -1,5 +1,5 @@
 use kseq;
-use std::io::{Cursor, Write};
+use std::io::Cursor;
 use std::result::Result;
 
 // https://stackoverflow.com/questions/53124930/how-do-you-test-for-a-specific-rust-error
@@ -48,7 +48,7 @@ fn test_normal_one_line_fastq() {
 #[test]
 fn test_normal_multi_line_fasta() {
     let data: Vec<u8> = format!(
-        ">1 record1\n{seq}{seq}\n>2 record2\n{seq}{seq}",
+        ">1 record1\n{seq}\n{seq}\n>2 record2\n{seq}\n{seq}",
         seq = BASE_SEQ
     )
     .into_bytes();
@@ -58,7 +58,7 @@ fn test_normal_multi_line_fasta() {
 #[test]
 fn test_normal_multi_line_fastq() {
     let data: Vec<u8> = format!(
-        "@1 record1\n{seq}{seq}\n+\n{qual}{qual}\n@2 record2\n{seq}{seq}\n+\n{qual}{qual}\n",
+        "@1 record1\n{seq}\n{seq}\n+\n{qual}\n{qual}\n@2 record2\n{seq}\n{seq}\n+\n{qual}{qual}\n",
         seq = BASE_SEQ,
         qual = BASE_QUAL
     )
